@@ -9,9 +9,9 @@ API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 st.set_page_config(page_title="Upload", layout="wide")
 st.title("Upload & Ingest")
 
-st.warning("Public guideline PDFs only. No patient data. Educational use.")
+st.warning("Materials science papers only. No proprietary or confidential data. Research use only.")
 
-uploaded = st.file_uploader("Upload a guideline PDF", type=["pdf"])
+uploaded = st.file_uploader("Upload a materials science paper (PDF)", type=["pdf"])
 col1, col2, col3 = st.columns(3)
 title = col1.text_input("Title (optional)")
 source = col2.text_input("Source (optional)")

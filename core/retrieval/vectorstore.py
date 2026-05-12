@@ -13,7 +13,7 @@ class ChromaVectorStore:
         self,
         persist_dir: str,
         embedder: OpenAIEmbedder,
-        collection_name: str = "guidelines",
+        collection_name: str = "papers",
     ):
         self.client = chromadb.PersistentClient(
             path=persist_dir,

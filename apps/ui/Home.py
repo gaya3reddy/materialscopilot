@@ -4,10 +4,10 @@ import streamlit as st
 
 API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 
-st.set_page_config(page_title="GuidelineCopilot", layout="wide")
-st.title("GuidelineCopilot (ClinAssist RAG)")
+st.set_page_config(page_title="MaterialsCopilot", layout="wide")
+st.title("MaterialsCopilot")
 st.caption(
-    "Evidence-grounded Q&A + summarization over public guideline PDFs (educational use)."
+    "Evidence-grounded Q&A + summarization over materials science papers."
 )
 
 with st.sidebar:

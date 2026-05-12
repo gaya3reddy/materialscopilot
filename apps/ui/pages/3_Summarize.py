@@ -24,14 +24,14 @@ label_map = {
 }
 
 selected = st.multiselect(
-    "Choose guideline docs",
+    "Choose papers",
     options=list(label_map.keys()),
     format_func=lambda k: label_map[k],
 )
 
 
 style = st.radio(
-    "Style", ["tldr", "key_steps", "contraindications", "eligibility"], horizontal=True
+    "Style", ["tldr",  "methods", "key_findings", "materials_properties"], horizontal=True
 )
 
 if st.button("Summarize", type="primary"):

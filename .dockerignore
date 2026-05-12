@@ -13,7 +13,7 @@ venv/
 .idea/
 
 # Local artifacts
-guidelinecopilot.egg-info/
+materialscopilot.egg-info/
 eval/reports/
 data/raw/
 data/processed/

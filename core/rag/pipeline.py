@@ -166,43 +166,75 @@ def stream_answer(
 def _summarize_retrieval_query(style: str, title: str | None = None) -> str:
     style = (style or "tldr").lower()
     prefix = f"{title} " if title else ""
+    
+    if style == "methods":
+        return f"{prefix}experimental methods synthesis characterization procedure"
+    if style == "key_findings":
+        return f"{prefix}key findings results conclusions main outcomes performance"
+    if style == "materials_properties":
+        return f"{prefix}mechanical thermal electrical optical properties composition microstructure"
+    return f"{prefix}summary overview purpose scope main findings"
 
-    if style == "key_steps":
-        return f"{prefix}key steps recommendations algorithm workflow what to do"
-    if style == "contraindications":
-        return f"{prefix}contraindications warnings precautions adverse events do not use avoid"
-    if style == "eligibility":
-        return f"{prefix}eligibility criteria inclusion exclusion who qualifies indications"
-    return f"{prefix}summary overview key recommendations purpose scope"
+    # if style == "key_steps":
+    #     return f"{prefix}key steps recommendations algorithm workflow what to do"
+    # if style == "contraindications":
+    #     return f"{prefix}contraindications warnings precautions adverse events do not use avoid"
+    # if style == "eligibility":
+    #     return f"{prefix}eligibility criteria inclusion exclusion who qualifies indications"
+    # return f"{prefix}summary overview key recommendations purpose scope"
 
 
 def _summarize_user_prompt(style: str, context: str) -> str:
     style = (style or "tldr").lower()
 
-    if style == "key_steps":
-        instructions = """Create a concise, step-by-step summary of the guideline:
-- 6–12 bullet steps, in order
-- include any thresholds / timing / decision points if present
-- be specific and actionable
-"""
-    elif style == "contraindications":
-        instructions = """Create a focused summary of contraindications / warnings:
-- bullet list grouped by theme (e.g., meds, conditions, situations)
-- include "Do not..." / "Avoid..." / "Use caution..." wording when appropriate
-- keep it short and clinically readable
-"""
-    elif style == "eligibility":
-        instructions = """Create a focused eligibility summary:
-- "Eligible if" bullet list
-- "Not eligible if" bullet list
-- include any numeric thresholds if present
-"""
-    else:
+#     if style == "key_steps":
+#         instructions = """Create a concise, step-by-step summary of the guideline:
+# - 6–12 bullet steps, in order
+# - include any thresholds / timing / decision points if present
+# - be specific and actionable
+# """
+#     elif style == "contraindications":
+#         instructions = """Create a focused summary of contraindications / warnings:
+# - bullet list grouped by theme (e.g., meds, conditions, situations)
+# - include "Do not..." / "Avoid..." / "Use caution..." wording when appropriate
+# - keep it short and clinically readable
+# """
+#     elif style == "eligibility":
+#         instructions = """Create a focused eligibility summary:
+# - "Eligible if" bullet list
+# - "Not eligible if" bullet list
+# - include any numeric thresholds if present
+# """
+#     else:
+#         instructions = """Create a TL;DR summary:
+# - 6–10 bullets max
+# - include purpose + key recommendations + any critical warnings
+# - keep it non-hallucinated and grounded in excerpts
+# """
+    if style == "methods":
+        instructions = """Summarize the experimental methods section:
+    - synthesis/fabrication steps in order
+    - characterization techniques used
+    - key parameters (temperature, pressure, composition, etc.)
+    """
+    elif style == "key_findings":
+        instructions = """Summarize the key findings and results:
+    - main outcomes as bullet points
+    - include quantitative results and performance metrics where present
+    - note any comparisons to prior work
+    """
+    elif style == "materials_properties":
+        instructions = """Summarize the materials properties reported:
+    - list properties by category (mechanical, thermal, electrical, etc.)
+    - include values and units where present
+    - note measurement conditions if given
+    """
+    else:  # tldr
         instructions = """Create a TL;DR summary:
-- 6–10 bullets max
-- include purpose + key recommendations + any critical warnings
-- keep it non-hallucinated and grounded in excerpts
-"""
+    - 6–10 bullets max
+    - include: material studied, method, key result, and significance
+    - stay grounded in the excerpts only
+    - avoid hallucination or adding information not in the excerpts"""
 
     return f"""{instructions}
 
@@ -258,7 +290,7 @@ def summarize_guideline(
 
     # separate system prompt for summarization (simpler + safer)
     summarize_system = (
-        "You are a helpful assistant summarizing public medical guideline excerpts. "
+        "You are a helpful assistant summarizing materials science paper excerpts. "
         "Use ONLY the provided excerpts. If information is missing, say so."
     )
     user_prompt = _summarize_user_prompt(style=style, context=context)
