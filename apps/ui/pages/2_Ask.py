@@ -32,6 +32,9 @@ except Exception as e:
     st.error(f"Could not load documents: {e}")
 
 doc_options = [d["doc_id"] for d in docs] if docs else []
+label_map = {
+    d["doc_id"]: f"{d['doc_id']} — {d.get('title') or 'Untitled'}" for d in docs
+}
 
 last_doc = st.session_state.get("last_ingested_doc_id")
 if last_doc and last_doc in doc_options:
@@ -45,7 +48,7 @@ with colA:
     # selected = st.multiselect("Choose guideline docs", options=doc_options)
     default_selected = st.session_state.pop("prefill_doc_ids", [])
     selected = st.multiselect(
-        "Choose papers", options=doc_options, default=default_selected
+        "Choose papers", options=doc_options, default=default_selected, format_func=lambda k: label_map[k],
     )
     question = st.text_area(
         "Question",
