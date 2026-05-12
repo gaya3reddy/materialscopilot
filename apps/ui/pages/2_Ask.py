@@ -45,12 +45,12 @@ with colA:
     # selected = st.multiselect("Choose guideline docs", options=doc_options)
     default_selected = st.session_state.pop("prefill_doc_ids", [])
     selected = st.multiselect(
-        "Choose guideline docs", options=doc_options, default=default_selected
+        "Choose papers", options=doc_options, default=default_selected
     )
     question = st.text_area(
         "Question",
         height=90,
-        placeholder="e.g., What is this guideline about? What does it recommend?",
+        placeholder="e.g., What are the key findings of the paper?",
     )
 
 with colB:

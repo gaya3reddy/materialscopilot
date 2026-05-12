@@ -59,7 +59,7 @@ class AskResponse(BaseModel):
 
 class SummarizeRequest(BaseModel):
     doc_ids: list[str] = Field(default_factory=list)
-    style: Literal["tldr", "key_steps", "contraindications", "eligibility"] = "tldr"
+    style: Literal["tldr", "methods", "key_findings", "materials_properties"] = "tldr"
     query: str | None = None
 
 
