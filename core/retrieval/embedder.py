@@ -13,6 +13,35 @@ class OpenAIEmbedder:
         self.model = model
 
     def embed(self, texts: List[str]) -> List[List[float]]:
-        # OpenAI embeddings endpoint
         resp = self.client.embeddings.create(model=self.model, input=texts)
         return [d.embedding for d in resp.data]
+
+
+class OllamaEmbedder:
+    def __init__(self, base_url: str, model: str):
+        self.base_url = base_url
+        self.model = model
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        import requests
+        embeddings = []
+        for text in texts:
+            resp = requests.post(
+                f"{self.base_url}/api/embeddings",
+                json={"model": self.model, "prompt": text},
+            )
+            resp.raise_for_status()
+            embeddings.append(resp.json()["embedding"])
+        return embeddings
+
+
+def get_embedder(settings):
+    if settings.model_provider == "ollama":
+        return OllamaEmbedder(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_embed_model,
+        )
+    return OpenAIEmbedder(
+        api_key=settings.openai_api_key,
+        model=settings.openai_embed_model,
+    )

@@ -33,3 +33,14 @@ with col2:
     st.page_link("pages/2_Ask.py", label="💬 Ask (RAG)", icon="💬")
 with col3:
     st.page_link("pages/3_Summarize.py", label="🧾 Summarize", icon="🧾")
+
+
+try:
+    provider = data.get("provider", "openai")
+except Exception:
+    provider = "unknown"
+
+if provider == "ollama":
+    st.sidebar.success("🔒 Local model (Ollama) — no data leaves this machine")
+else:
+    st.sidebar.info("☁️ OpenAI API")

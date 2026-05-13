@@ -8,6 +8,7 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     service: str
     version: str
+    provider: str = "openai"
 
 
 class Citation(BaseModel):

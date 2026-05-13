@@ -18,6 +18,7 @@ dependencies = [
   "chromadb",
   "sentence-transformers",
   "openai",
+  "ollama",
 ]
 
 [project.optional-dependencies]

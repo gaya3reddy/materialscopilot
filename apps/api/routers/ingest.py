@@ -10,7 +10,8 @@ from apps.api.job_registry import JobStatus, job_registry
 from core.ingestion.chunker import chunk_pages
 from core.ingestion.pdf_loader import extract_pages
 from core.registry.registry import DocumentRegistry
-from core.retrieval.embedder import OpenAIEmbedder
+# from core.retrieval.embedder import OpenAIEmbedder
+from core.retrieval.embedder import get_embedder
 from core.retrieval.vectorstore import ChromaVectorStore
 from core.schemas.models import DocInfo, DocList
 import asyncio
@@ -65,10 +66,7 @@ def _run_ingest(
             pages=len(pages),
         )
 
-        embedder = OpenAIEmbedder(
-            api_key=settings.openai_api_key,
-            model=settings.openai_embed_model,
-        )
+        embedder = get_embedder(settings)
         store = ChromaVectorStore(
             persist_dir=str(settings.processed_dir / "chroma"),
             embedder=embedder,

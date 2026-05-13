@@ -5,14 +5,14 @@ from typing import Any, Dict, List, Optional
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 
-from core.retrieval.embedder import OpenAIEmbedder
+from core.retrieval.embedder import get_embedder
 
 
 class ChromaVectorStore:
     def __init__(
         self,
         persist_dir: str,
-        embedder: OpenAIEmbedder,
+        embedder: Any,
         collection_name: str = "papers",
     ):
         self.client = chromadb.PersistentClient(

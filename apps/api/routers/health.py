@@ -7,6 +7,14 @@ from apps.api.config import settings
 router = APIRouter(tags=["health"])
 
 
+# @router.get("/health", response_model=HealthResponse)
+# def health() -> HealthResponse:
+#     return HealthResponse(service=settings.app_name, version=settings.app_version)
+
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(service=settings.app_name, version=settings.app_version)
+    return HealthResponse(
+        service=settings.app_name,
+        version=settings.app_version,
+        provider=settings.model_provider
+    )

@@ -28,6 +28,10 @@ class Settings:
     openai_api_key: str | None
     openai_chat_model: str
     openai_embed_model: str
+    
+    ollama_base_url: str
+    ollama_chat_model: str
+    ollama_embed_model: str
 
     data_dir: Path
     raw_dir: Path
@@ -37,7 +41,7 @@ class Settings:
 
     @staticmethod
     def load() -> "Settings":
-        app_name = os.getenv("APP_NAME", "guidelinecopilot-api")
+        app_name = os.getenv("APP_NAME", "materialscopilot-api")
         app_version = os.getenv("APP_VERSION", "0.1.0")
 
         api_host = os.getenv("API_HOST", "0.0.0.0")
@@ -48,6 +52,11 @@ class Settings:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_chat_model = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
         openai_embed_model = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+        
+        ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        ollama_chat_model = os.getenv("OLLAMA_CHAT_MODEL", "mistral")
+        ollama_embed_model = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+        # ollama_chat_model = os.getenv("OLLAMA_CHAT_MODEL", "llama3")
 
         data_dir = Path(os.getenv("DATA_DIR", "data")).resolve()
         raw_dir = data_dir / "raw"
@@ -77,6 +86,9 @@ class Settings:
             openai_api_key=openai_api_key,
             openai_chat_model=openai_chat_model,
             openai_embed_model=openai_embed_model,
+            ollama_base_url=ollama_base_url,
+            ollama_chat_model=ollama_chat_model,
+            ollama_embed_model=ollama_embed_model,
             data_dir=data_dir,
             raw_dir=raw_dir,
             processed_dir=processed_dir,

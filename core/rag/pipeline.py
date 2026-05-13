@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from openai import OpenAI
-
+from ollama import Client as OllamaClient
+from core.retrieval.embedder import get_embedder
 from apps.api.config import settings
 from core.rag.prompts import ASK_SYSTEM
-from core.retrieval.embedder import OpenAIEmbedder
 from core.retrieval.vectorstore import ChromaVectorStore
 from typing import Generator
 import json
@@ -37,12 +37,12 @@ def answer_question(
     doc_ids: list[str] | None = None,
     mode: str = "rag",
 ) -> Dict[str, Any]:
-    if not settings.openai_api_key:
+    if settings.model_provider == "openai" and not settings.openai_api_key:
         raise ValueError("OPENAI_API_KEY missing. Set it in .env.")
+    if settings.model_provider == "ollama" and not settings.ollama_base_url:
+        raise ValueError("OLLAMA_BASE_URL missing. Set it in .env.")
 
-    embedder = OpenAIEmbedder(
-        api_key=settings.openai_api_key, model=settings.openai_embed_model
-    )
+    embedder = get_embedder(settings)
     store = ChromaVectorStore(
         persist_dir=str(settings.processed_dir / "chroma"), embedder=embedder
     )
@@ -51,7 +51,7 @@ def answer_question(
     retrieved: list[dict] = []
     if mode == "no_rag":
         system_prompt = (
-            "You are a helpful medical assistant. Answer from your general knowledge."
+            "You are a helpful materials science assistant. Answer from your general knowledge."
         )
         user_prompt = question
         retrieved = []
@@ -76,17 +76,27 @@ Guideline excerpts:
 {context}
 """
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    resp = client.chat.completions.create(
-        model=settings.openai_chat_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-    )
-
-    answer = resp.choices[0].message.content.strip()
+    if settings.model_provider == "ollama":
+        ollama_client = OllamaClient(host=settings.ollama_base_url)
+        resp = ollama_client.chat(
+            model=settings.ollama_chat_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        answer = resp["message"]["content"].strip()
+    else:
+        client = OpenAI(api_key=settings.openai_api_key)
+        resp = client.chat.completions.create(
+            model=settings.openai_chat_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+        )
+        answer = resp.choices[0].message.content.strip()
     return {"answer": answer, "citations": retrieved}
 
 
@@ -98,12 +108,12 @@ def stream_answer(
 ) -> Generator[str, None, None]:
     """Yields answer tokens one by one, then yields citations as a JSON line."""
 
-    if not settings.openai_api_key:
-        raise ValueError("OPENAI_API_KEY missing.")
+    if settings.model_provider == "openai" and not settings.openai_api_key:
+        raise ValueError("OPENAI_API_KEY missing. Set it in .env.")
+    if settings.model_provider == "ollama" and not settings.ollama_base_url:
+        raise ValueError("OLLAMA_BASE_URL missing. Set it in .env.")
 
-    embedder = OpenAIEmbedder(
-        api_key=settings.openai_api_key, model=settings.openai_embed_model
-    )
+    embedder = get_embedder(settings)
     store = ChromaVectorStore(
         persist_dir=str(settings.processed_dir / "chroma"), embedder=embedder
     )
@@ -126,43 +136,42 @@ def stream_answer(
 
     if mode == "no_rag":
         system_prompt = (
-            "You are a helpful medical assistant. Answer from your general knowledge."
+            "You are a helpful materials science assistant. Answer from your general knowledge."
         )
         user_prompt = question
     else:
         system_prompt = ASK_SYSTEM
-        user_prompt = f"Question: {question}\n\nGuideline excerpts:\n{context}"
+        user_prompt = f"Question: {question}\n\nPaper excerpts:\n{context}"
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    resp = client.chat.completions.create(
-        model=settings.openai_chat_model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-        stream=True,  # enable streaming
-    )
+    if settings.model_provider == "ollama":
+        ollama_client = OllamaClient(host=settings.ollama_base_url)
+        resp = ollama_client.chat(
+            model=settings.ollama_chat_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        yield resp["message"]["content"].strip()
+    else:
+        client = OpenAI(api_key=settings.openai_api_key)
+        resp = client.chat.completions.create(
+            model=settings.openai_chat_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            stream=True,
+        )
+        for chunk in resp:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield delta
 
-    # Stream answer tokens
-    for chunk in resp:
-        delta = chunk.choices[0].delta.content
-        if delta:
-            yield delta
-
-    # After stream ends, yield citations as a single JSON line
     yield "\n\n__CITATIONS__:" + json.dumps(retrieved)
 
 
-# def _summarize_retrieval_query(style: str) -> str:
-#     style = (style or "tldr").lower()
-#     if style == "key_steps":
-#         return "key steps recommendations algorithm workflow what to do"
-#     if style == "contraindications":
-#         return "contraindications warnings precautions adverse events do not use avoid"
-#     if style == "eligibility":
-#         return "eligibility criteria inclusion exclusion who qualifies indications"
-#     return "summary overview key recommendations purpose scope main findings"
 def _summarize_retrieval_query(style: str, title: str | None = None) -> str:
     style = (style or "tldr").lower()
     prefix = f"{title} " if title else ""
@@ -175,42 +184,10 @@ def _summarize_retrieval_query(style: str, title: str | None = None) -> str:
         return f"{prefix}mechanical thermal electrical optical properties composition microstructure"
     return f"{prefix}summary overview purpose scope main findings"
 
-    # if style == "key_steps":
-    #     return f"{prefix}key steps recommendations algorithm workflow what to do"
-    # if style == "contraindications":
-    #     return f"{prefix}contraindications warnings precautions adverse events do not use avoid"
-    # if style == "eligibility":
-    #     return f"{prefix}eligibility criteria inclusion exclusion who qualifies indications"
-    # return f"{prefix}summary overview key recommendations purpose scope"
-
 
 def _summarize_user_prompt(style: str, context: str) -> str:
     style = (style or "tldr").lower()
 
-#     if style == "key_steps":
-#         instructions = """Create a concise, step-by-step summary of the guideline:
-# - 6–12 bullet steps, in order
-# - include any thresholds / timing / decision points if present
-# - be specific and actionable
-# """
-#     elif style == "contraindications":
-#         instructions = """Create a focused summary of contraindications / warnings:
-# - bullet list grouped by theme (e.g., meds, conditions, situations)
-# - include "Do not..." / "Avoid..." / "Use caution..." wording when appropriate
-# - keep it short and clinically readable
-# """
-#     elif style == "eligibility":
-#         instructions = """Create a focused eligibility summary:
-# - "Eligible if" bullet list
-# - "Not eligible if" bullet list
-# - include any numeric thresholds if present
-# """
-#     else:
-#         instructions = """Create a TL;DR summary:
-# - 6–10 bullets max
-# - include purpose + key recommendations + any critical warnings
-# - keep it non-hallucinated and grounded in excerpts
-# """
     if style == "methods":
         instructions = """Summarize the experimental methods section:
     - synthesis/fabrication steps in order
@@ -238,9 +215,9 @@ def _summarize_user_prompt(style: str, context: str) -> str:
 
     return f"""{instructions}
 
-Guideline excerpts (cite internally by referring to the numbered blocks):
-{context}
-"""
+    Paper excerpts (cite internally by referring to the numbered blocks):
+    {context}
+    """
 
 
 def summarize_guideline(
@@ -252,12 +229,12 @@ def summarize_guideline(
     """
     Returns: {"summary": <text>, "citations": <retrieved chunks list>}
     """
-    if not settings.openai_api_key:
+    if settings.model_provider == "openai" and not settings.openai_api_key:
         raise ValueError("OPENAI_API_KEY missing. Set it in .env.")
+    if settings.model_provider == "ollama" and not settings.ollama_base_url:
+        raise ValueError("OLLAMA_BASE_URL missing. Set it in .env.")
 
-    embedder = OpenAIEmbedder(
-        api_key=settings.openai_api_key, model=settings.openai_embed_model
-    )
+    embedder = get_embedder(settings)
     store = ChromaVectorStore(
         persist_dir=str(settings.processed_dir / "chroma"), embedder=embedder
     )
@@ -295,15 +272,31 @@ def summarize_guideline(
     )
     user_prompt = _summarize_user_prompt(style=style, context=context)
 
-    client = OpenAI(api_key=settings.openai_api_key)
-    resp = client.chat.completions.create(
-        model=settings.openai_chat_model,
-        messages=[
-            {"role": "system", "content": summarize_system},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-    )
+    if settings.model_provider == "ollama":
+        ollama_client = OllamaClient(host=settings.ollama_base_url)
+        resp = ollama_client.chat(
+            model=settings.ollama_chat_model,
+            messages=[
+                {"role": "system", "content": summarize_system},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        answer = resp["message"]["content"].strip()
+    else:
+        client = OpenAI(api_key=settings.openai_api_key)
+        resp = client.chat.completions.create(
+            model=settings.openai_chat_model,
+            messages=[
+                {"role": "system", "content": summarize_system},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+        )
 
-    summary = resp.choices[0].message.content.strip()
+    # summary = resp.choices[0].message.content.strip()
+    # return {"summary": summary, "citations": retrieved}
+    if settings.model_provider == "ollama":
+        summary = answer
+    else:
+        summary = resp.choices[0].message.content.strip()
     return {"summary": summary, "citations": retrieved}

@@ -12,13 +12,16 @@ st.set_page_config(page_title="Ask", layout="wide")
 st.title("Ask (RAG)")
 
 # Sidebar: API health
+provider = "openai"  # default
 with st.sidebar:
     st.markdown("### API")
     try:
         hr = requests.get(f"{API_BASE}/health", timeout=5)
         st.success("API connected ✅" if hr.ok else "API error ❌")
         if hr.ok:
-            st.caption(hr.json())
+            health_data = hr.json()
+            st.caption(health_data)
+            provider = health_data.get("provider", "openai")
     except Exception:
         st.error("API not reachable")
 
@@ -139,7 +142,10 @@ if run:
             ):
                 st.write(c["snippet"])
     latency_ms = int((time.perf_counter() - start) * 1000)
-    st.caption(f"latency: {latency_ms} ms | model: gpt-4o-mini")
+    # st.caption(f"latency: {latency_ms} ms | model: gpt-4o-mini")
+    
+    model_label = "gpt-4o-mini" if provider != "ollama" else "mistral (local)"
+    st.caption(f"latency: {latency_ms} ms | model: {model_label}")
 
     st.info(
         "Tip: Open the **Evidence** tab to view retrieved snippets as an audit trail."
