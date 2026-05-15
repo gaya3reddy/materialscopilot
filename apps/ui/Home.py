@@ -44,3 +44,10 @@ if provider == "ollama":
     st.sidebar.success("🔒 Local model (Ollama) — no data leaves this machine")
 else:
     st.sidebar.info("☁️ OpenAI API")
+    
+
+parser = data.get("parser", "pypdf")
+if parser == "llamaparse":
+    st.sidebar.success("📄 LlamaParse (cloud)")
+else:
+    st.sidebar.info("📄 pypdf (local)")

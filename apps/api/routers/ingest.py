@@ -15,6 +15,8 @@ from core.retrieval.embedder import get_embedder
 from core.retrieval.vectorstore import ChromaVectorStore
 from core.schemas.models import DocInfo, DocList
 import asyncio
+from core.logger import get_logger
+logger = get_logger(__name__)
 
 router = APIRouter(tags=["ingestion"])
 
@@ -90,8 +92,10 @@ def _run_ingest(
             job_registry.update(job_id, indexed_chunks=indexed)
 
         job_registry.set_done(job_id, pages=len(pages), chunks=indexed)
-
+        logger.info("Ingest complete — job: %s chunks: %d", job_id, indexed)
+       
     except Exception as e:
+        logger.error("Ingest failed — job: %s error: %s", job_id, str(e))
         job_registry.set_error(job_id, str(e))
 
 

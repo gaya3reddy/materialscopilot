@@ -10,6 +10,8 @@ from core.rag.prompts import ASK_SYSTEM
 from core.retrieval.vectorstore import ChromaVectorStore
 from typing import Generator
 import json
+from core.logger import get_logger
+logger = get_logger(__name__)
 
 
 def _build_context(citations: List[Dict[str, Any]]) -> str:
@@ -97,6 +99,10 @@ Guideline excerpts:
             temperature=0.2,
         )
         answer = resp.choices[0].message.content.strip()
+    logger.info("Query received — provider: %s mode: %s top_k: %d", 
+            settings.model_provider, mode, top_k)
+    logger.info("Retrieved %d chunks — top score: %.4f", 
+            len(retrieved), retrieved[0]["distance"] if retrieved else 0)
     return {"answer": answer, "citations": retrieved}
 
 

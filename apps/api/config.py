@@ -4,6 +4,9 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from dotenv import load_dotenv
+from core.logger import get_logger
+logger = get_logger(__name__)
+
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"  # project root/.env
 load_dotenv(dotenv_path=ENV_PATH)
@@ -23,6 +26,9 @@ class Settings:
 
     api_host: str
     api_port: int
+    
+    parser: str
+    llama_cloud_api_key: str
 
     model_provider: str
     openai_api_key: str | None
@@ -38,6 +44,7 @@ class Settings:
     processed_dir: Path
 
     max_upload_mb: int
+    log_level: str
 
     @staticmethod
     def load() -> "Settings":
@@ -46,7 +53,10 @@ class Settings:
 
         api_host = os.getenv("API_HOST", "0.0.0.0")
         api_port = int(os.getenv("API_PORT", "8000"))
-
+        
+        parser = os.getenv("PARSER", "pypdf").lower()
+        llama_cloud_api_key = os.getenv("LLAMA_CLOUD_API_KEY")
+        
         model_provider = os.getenv("MODEL_PROVIDER", "openai").lower()
 
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -63,6 +73,7 @@ class Settings:
         processed_dir = data_dir / "processed"
 
         max_upload_mb = int(os.getenv("MAX_UPLOAD_MB", "30"))
+        log_level = os.getenv("LOG_LEVEL", "INFO")
 
         # Make dirs
         raw_dir.mkdir(parents=True, exist_ok=True)
@@ -76,12 +87,18 @@ class Settings:
             # We allow running without key for Day-1 skeleton (health endpoint),
             # but warn via logs later.
             openai_api_key = None
-        print("DEBUG OPENAI_API_KEY loaded:", bool(openai_api_key))
+        logger.info("PARSER: %s", parser)
+        logger.info("LLAMA_CLOUD_API_KEY loaded: %s", bool(llama_cloud_api_key))
+        logger.info("OPENAI_API_KEY loaded: %s", bool(openai_api_key))
+        logger.info("MODEL_PROVIDER: %s", model_provider)
+        logger.info("LOG_LEVEL: %s", log_level)
         return Settings(
             app_name=app_name,
             app_version=app_version,
             api_host=api_host,
             api_port=api_port,
+            parser=parser,
+            llama_cloud_api_key=llama_cloud_api_key,
             model_provider=model_provider,
             openai_api_key=openai_api_key,
             openai_chat_model=openai_chat_model,
@@ -93,6 +110,7 @@ class Settings:
             raw_dir=raw_dir,
             processed_dir=processed_dir,
             max_upload_mb=max_upload_mb,
+            log_level=log_level
         )
 
 

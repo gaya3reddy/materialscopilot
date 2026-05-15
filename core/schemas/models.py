@@ -9,6 +9,7 @@ class HealthResponse(BaseModel):
     service: str
     version: str
     provider: str = "openai"
+    parser: str = "pypdf"
 
 
 class Citation(BaseModel):
